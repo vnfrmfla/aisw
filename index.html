@@ -1,465 +1,203 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>LED Signboard App</title>
-  
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- Google Fonts -->
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@400;700&display=swap');
-
-    @keyframes scrollLeft {
-      0% { left: 100%; transform: translateX(0); }
-      100% { left: 0; transform: translateX(-100%); }
-    }
-    @keyframes scrollRight {
-      0% { right: 100%; transform: translateX(0); }
-      100% { right: 0; transform: translateX(100%); }
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-    
-    .effect-scroll-left { animation: scrollLeft var(--speed) linear infinite; }
-    .effect-scroll-right { animation: scrollRight var(--speed) linear infinite; }
-    .effect-blink { animation: blink var(--speed) ease-in-out infinite; }
-    
-    /* 커스텀 스크롤바 숨기기 */
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-    /* 전광판 기본 텍스트 속성 */
-    .signboard-text {
-      white-space: nowrap;
-      padding: 0 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>매일 매일 To-Do List</title>
+    <style>
+        body {
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        li {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            gap: 10px;
+        }
+        li:last-child {
+            border-bottom: none;
+        }
+        .task-text {
+            flex: 1;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .completed .task-text {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .delete-btn {
+            background-color: #ff4c4c;
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+        .delete-btn:hover {
+            background-color: #ff3333;
+        }
+    </style>
 </head>
-<body class="font-sans antialiased overflow-hidden">
+<body>
 
-  <!-- 메인 앱 컨테이너 (다크모드/라이트모드 제어) -->
-  <div id="app-container" class="min-h-screen flex flex-col transition-colors duration-300 bg-gray-900 text-gray-100 h-[100dvh]">
-    
-    <!-- 1. Header -->
-    <header id="header" class="flex items-center justify-between px-6 py-4 shadow-sm z-10 bg-gray-800/80 backdrop-blur-md transition-colors duration-300">
-      <div class="flex items-center gap-2">
-        <i data-lucide="sparkles" class="w-5 h-5 text-teal-400"></i>
-        <h1 class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-emerald-500">
-          LED BOARD
-        </h1>
-      </div>
-      <button id="dark-mode-toggle" class="p-2 rounded-full transition-colors bg-gray-700 hover:bg-gray-600">
-        <i id="dark-mode-icon" data-lucide="sun" class="w-5 h-5 text-yellow-400"></i>
-      </button>
-    </header>
-
-    <!-- 2. Preview (미리보기) 영역 - 상단 40% -->
-    <section class="h-[35vh] sm:h-[40vh] shrink-0 border-b border-gray-700/20 shadow-inner relative">
-      <div id="preview-board" class="relative w-full h-full overflow-hidden flex items-center justify-center bg-black">
-        <div id="preview-dot-pattern" class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(#00FF00 1px, transparent 1px); background-size: 4px 4px;"></div>
-        <div id="preview-text" class="signboard-text absolute effect-scroll-left" style="font-family: 'Black Han Sans', sans-serif; color: #00FF00; font-size: 12vh; line-height: 1.2; --speed: 7.4s;">
-          MAKE SOME NOISE!
-        </div>
-      </div>
-      <div class="absolute top-3 left-3 px-3 py-1 bg-black/40 backdrop-blur-sm rounded-full text-xs text-white/80 border border-white/10 flex items-center gap-1.5">
-        <i data-lucide="play" class="w-3 h-3"></i> Preview
-      </div>
-    </section>
-
-    <!-- 3. Controller (설정) 영역 - 하단 60% -->
-    <section class="flex-1 overflow-y-auto no-scrollbar pb-24 relative">
-      <div class="max-w-2xl mx-auto p-6 space-y-8">
-        
-        <!-- 문구 입력 -->
-        <div class="space-y-3">
-          <label class="flex items-center gap-2 text-sm font-semibold opacity-80">
-            <i data-lucide="type" class="w-4 h-4"></i> 표시할 문구
-          </label>
-          <textarea 
-            id="text-input"
-            placeholder="응원 문구를 입력하세요!"
-            rows="2"
-            class="w-full px-4 py-3 rounded-2xl resize-none outline-none focus:ring-2 focus:ring-teal-400 transition-all bg-gray-800 text-white placeholder-gray-500 shadow-sm border border-transparent"
-          >MAKE SOME NOISE!</textarea>
-        </div>
-
-        <!-- 폰트 스타일 -->
-        <div class="space-y-3">
-          <label class="flex items-center gap-2 text-sm font-semibold opacity-80">
-            <i data-lucide="type" class="w-4 h-4"></i> 폰트 스타일
-          </label>
-          <div id="font-buttons" class="flex flex-wrap gap-2"></div>
-        </div>
-
-        <!-- 컬러 설정 -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <!-- 글자색 -->
-          <div class="space-y-3">
-            <label class="flex items-center gap-2 text-sm font-semibold opacity-80">
-              <i data-lucide="palette" class="w-4 h-4"></i> 글자 색상
-            </label>
-            <div id="text-color-buttons" class="flex flex-wrap gap-3 items-center">
-              <!-- Color buttons will be injected here -->
-              <input type="color" id="custom-text-color" class="w-8 h-8 rounded-full overflow-hidden cursor-pointer bg-transparent border-0 p-0" />
-            </div>
-          </div>
-
-          <!-- 배경색 -->
-          <div class="space-y-3">
-            <label class="flex items-center gap-2 text-sm font-semibold opacity-80">
-              <i data-lucide="palette" class="w-4 h-4"></i> 배경 색상
-            </label>
-            <div id="bg-color-buttons" class="flex flex-wrap gap-3 items-center">
-               <!-- Color buttons will be injected here -->
-               <input type="color" id="custom-bg-color" class="w-8 h-8 rounded-full overflow-hidden cursor-pointer bg-transparent border-0 p-0" />
-            </div>
-          </div>
-        </div>
-
-        <!-- 애니메이션 효과 -->
-        <div class="space-y-4 pt-2 border-t border-gray-500/20">
-          <div class="flex items-center justify-between">
-            <label class="flex items-center gap-2 text-sm font-semibold opacity-80">
-              <i data-lucide="sparkles" class="w-4 h-4"></i> 특수 효과
-            </label>
-            <!-- 네온 토글 -->
-            <label class="flex items-center gap-2 cursor-pointer">
-              <span class="text-sm opacity-80 font-medium">네온(Neon)</span>
-              <div id="neon-toggle-bg" class="relative w-12 h-6 transition-colors rounded-full bg-teal-500">
-                <input type="checkbox" id="neon-toggle" class="sr-only" checked />
-                <div id="neon-toggle-knob" class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform translate-x-6"></div>
-              </div>
-            </label>
-          </div>
-          
-          <div id="effect-buttons" class="flex bg-gray-500/10 p-1 rounded-2xl"></div>
-
-          <!-- 속도 조절 -->
-          <div id="speed-container" class="space-y-2 pt-2 transition-opacity duration-300">
-            <div class="flex justify-between text-xs opacity-60">
-              <span>느리게</span>
-              <span>효과 속도</span>
-              <span>빠르게</span>
-            </div>
-            <input 
-              type="range" id="speed-slider" min="1" max="10" value="7"
-              class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-500/20 accent-teal-500"
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 4. 플로팅 시작 버튼 -->
-    <div class="fixed bottom-0 left-0 right-0 p-6 flex justify-center z-20 pointer-events-none">
-      <div class="w-full max-w-sm pointer-events-auto">
-        <button 
-          id="btn-fullscreen"
-          class="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-500 hover:to-emerald-600 text-white font-bold text-lg shadow-lg shadow-teal-500/40 hover:shadow-teal-500/60 transition-all flex items-center justify-center gap-2 transform active:scale-95"
-        >
-          <i data-lucide="maximize-2" class="w-5 h-5"></i>
-          전화면 시작
-        </button>
-      </div>
-      <div id="bottom-gradient" class="absolute inset-0 pointer-events-none -z-10 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent transition-colors duration-300"></div>
+<div class="container">
+    <h1>📝 오늘의 할 일</h1>
+    <div class="input-group">
+        <input type="text" id="taskInput" placeholder="할 일을 입력하세요..." onkeypress="if(event.keyCode==13) document.getElementById('addBtn').click()">
+        <button id="addBtn">추가</button>
     </div>
-  </div>
+    <ul id="taskList">
+        </ul>
+</div>
 
-  <!-- 전체화면 모드 오버레이 -->
-  <div id="fullscreen-overlay" class="hidden fixed inset-0 z-50 cursor-pointer bg-black select-none">
-    <div id="fullscreen-board" class="relative w-full h-full overflow-hidden flex items-center justify-center bg-black">
-      <div id="fullscreen-dot-pattern" class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(#00FF00 1px, transparent 1px); background-size: 10px 10px;"></div>
-      <div id="fullscreen-text" class="signboard-text absolute effect-scroll-left" style="font-family: 'Black Han Sans', sans-serif; color: #00FF00; font-size: 40vh; line-height: 1.2; --speed: 7.4s;">
-        MAKE SOME NOISE!
-      </div>
-      <div class="absolute bottom-6 text-white/50 text-sm font-sans tracking-widest pointer-events-none animate-pulse">
-        화면을 터치하면 이전으로 돌아갑니다
-      </div>
-    </div>
-  </div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc, doc, serverTimestamp } 
+    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-  <script>
-    // --- 설정 및 데이터 ---
-    const FONTS = [
-      { id: 'gothic', name: '고딕체', family: "'Noto Sans KR', sans-serif" },
-      { id: 'myeongjo', name: '명조체', family: "'Noto Serif KR', serif" },
-      { id: 'cute', name: '아기자기', family: "'Jua', sans-serif" },
-      { id: 'neon', name: '네온볼드', family: "'Black Han Sans', sans-serif" },
-    ];
-    const TEXT_COLORS = ['#FFFFFF', '#FF1493', '#00FF00', '#00FFFF', '#FFD700', '#FF4500', '#9400D3'];
-    const BG_COLORS = ['#000000', '#1A1A2E', '#2C3E50', '#4A0E4E', '#002200', '#FFFFFF'];
-    const EFFECTS = [
-      { id: 'none', icon: 'align-center', label: '고정' },
-      { id: 'scroll-left', icon: 'move-left', label: '좌로 이동' },
-      { id: 'scroll-right', icon: 'move-right', label: '우로 이동' },
-      { id: 'blink', icon: 'sparkles', label: '깜빡임' },
-    ];
+    // 🔴 중요: 본인의 Firebase 프로젝트 설정 값으로 교체하세요!
+    const firebaseConfig = {
+  apiKey: "AIzaSyBPhSpbtxBXyFQs1D0oUg7RG-PRnsghRBM",
+  authDomain: "todo-46112.firebaseapp.com",
+  projectId: "todo-46112",
+  storageBucket: "todo-46112.firebasestorage.app",
+  messagingSenderId: "119160665543",
+  appId: "1:119160665543:web:df34d62a843fd5a6c595e2",
+  measurementId: "G-08K3H93LP9"
+};
 
-    // --- State (상태 관리) ---
-    let state = {
-      isDarkMode: true,
-      text: 'MAKE SOME NOISE!',
-      font: FONTS[3].family,
-      textColor: TEXT_COLORS[2],
-      bgColor: BG_COLORS[0],
-      effect: 'scroll-left',
-      speed: 7,
-      isNeon: true
-    };
+    // Firebase 초기화
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const todosCollection = collection(db, "todos");
 
-    // --- DOM Elements ---
-    const elements = {
-      appContainer: document.getElementById('app-container'),
-      header: document.getElementById('header'),
-      darkModeToggle: document.getElementById('dark-mode-toggle'),
-      darkModeIcon: document.getElementById('dark-mode-icon'),
-      textInput: document.getElementById('text-input'),
-      fontButtons: document.getElementById('font-buttons'),
-      textColorButtons: document.getElementById('text-color-buttons'),
-      bgColorButtons: document.getElementById('bg-color-buttons'),
-      customTextColor: document.getElementById('custom-text-color'),
-      customBgColor: document.getElementById('custom-bg-color'),
-      effectButtons: document.getElementById('effect-buttons'),
-      speedContainer: document.getElementById('speed-container'),
-      speedSlider: document.getElementById('speed-slider'),
-      neonToggle: document.getElementById('neon-toggle'),
-      neonToggleBg: document.getElementById('neon-toggle-bg'),
-      neonToggleKnob: document.getElementById('neon-toggle-knob'),
-      btnFullscreen: document.getElementById('btn-fullscreen'),
-      bottomGradient: document.getElementById('bottom-gradient'),
-      fullscreenOverlay: document.getElementById('fullscreen-overlay'),
-      
-      // 전광판 요소들
-      preview: {
-        board: document.getElementById('preview-board'),
-        text: document.getElementById('preview-text'),
-        dotPattern: document.getElementById('preview-dot-pattern'),
-      },
-      fullscreen: {
-        board: document.getElementById('fullscreen-board'),
-        text: document.getElementById('fullscreen-text'),
-        dotPattern: document.getElementById('fullscreen-dot-pattern'),
-      }
-    };
+    // DOM 요소
+    const taskInput = document.getElementById('taskInput');
+    const addBtn = document.getElementById('addBtn');
+    const taskList = document.getElementById('taskList');
 
-    // --- 렌더링 함수들 ---
+    // 1. 할 일 추가하기
+    addBtn.addEventListener('click', async () => {
+        const text = taskInput.value.trim();
+        if (text === '') {
+            alert('할 일을 입력해주세요!');
+            return;
+        }
+        try {
+            await addDoc(todosCollection, {
+                text: text,
+                completed: false,
+                createdAt: serverTimestamp() // 작성 시간 순 정렬을 위해 추가
+            });
+            taskInput.value = ''; // 입력창 비우기
+        } catch (e) {
+            console.error("Error adding document: ", e);
+        }
+    });
 
-    function renderDynamicControls() {
-      // 폰트 버튼 렌더링
-      elements.fontButtons.innerHTML = FONTS.map(f => `
-        <button onclick="updateState('font', '${f.family}')" style="font-family: ${f.family}"
-          class="font-btn px-4 py-2 rounded-full text-sm transition-all border" data-value="${f.family}">
-          ${f.name}
-        </button>
-      `).join('');
-
-      // 텍스트 색상 렌더링
-      const textColorsHtml = TEXT_COLORS.map(color => `
-        <button onclick="updateState('textColor', '${color}')" style="background-color: ${color}"
-          class="text-color-btn w-8 h-8 rounded-full shadow-sm border-2 transition-transform border-transparent hover:scale-105" data-value="${color}">
-        </button>
-      `).join('');
-      elements.textColorButtons.insertAdjacentHTML('afterbegin', textColorsHtml);
-
-      // 배경 색상 렌더링
-      const bgColorsHtml = BG_COLORS.map(color => `
-        <button onclick="updateState('bgColor', '${color}')" style="background-color: ${color}"
-          class="bg-color-btn w-8 h-8 rounded-full shadow-sm border-2 transition-transform border-gray-500/30 hover:scale-105" data-value="${color}">
-        </button>
-      `).join('');
-      elements.bgColorButtons.insertAdjacentHTML('afterbegin', bgColorsHtml);
-
-      // 특수 효과 렌더링
-      elements.effectButtons.innerHTML = EFFECTS.map(opt => `
-        <button onclick="updateState('effect', '${opt.id}')" data-value="${opt.id}"
-          class="effect-btn flex-1 flex flex-col items-center justify-center py-3 gap-1 rounded-xl text-xs font-medium transition-all opacity-60 hover:opacity-100">
-          <i data-lucide="${opt.icon}" class="w-4 h-4"></i>
-          ${opt.label}
-        </button>
-      `).join('');
-
-      lucide.createIcons();
-    }
-
-    function updateUI() {
-      // 1. 다크모드/라이트모드 UI
-      if (state.isDarkMode) {
-        elements.appContainer.classList.replace('bg-gray-50', 'bg-gray-900');
-        elements.appContainer.classList.replace('text-gray-800', 'text-gray-100');
-        elements.header.classList.replace('bg-white/80', 'bg-gray-800/80');
-        elements.darkModeToggle.classList.replace('bg-gray-100', 'bg-gray-700');
-        elements.darkModeToggle.classList.replace('hover:bg-gray-200', 'hover:bg-gray-600');
-        elements.darkModeIcon.setAttribute('data-lucide', 'sun');
-        elements.darkModeIcon.classList.replace('text-gray-500', 'text-yellow-400');
-        elements.textInput.classList.replace('bg-white', 'bg-gray-800');
-        elements.textInput.classList.replace('text-gray-900', 'text-white');
-        elements.textInput.classList.replace('border-gray-200', 'border-transparent');
-        elements.bottomGradient.classList.replace('from-gray-50', 'from-gray-900');
-        elements.bottomGradient.classList.replace('via-gray-50/80', 'via-gray-900/80');
-      } else {
-        elements.appContainer.classList.replace('bg-gray-900', 'bg-gray-50');
-        elements.appContainer.classList.replace('text-gray-100', 'text-gray-800');
-        elements.header.classList.replace('bg-gray-800/80', 'bg-white/80');
-        elements.darkModeToggle.classList.replace('bg-gray-700', 'bg-gray-100');
-        elements.darkModeToggle.classList.replace('hover:bg-gray-600', 'hover:bg-gray-200');
-        elements.darkModeIcon.setAttribute('data-lucide', 'moon');
-        elements.darkModeIcon.classList.replace('text-yellow-400', 'text-gray-500');
-        elements.textInput.classList.replace('bg-gray-800', 'bg-white');
-        elements.textInput.classList.replace('text-white', 'text-gray-900');
-        elements.textInput.classList.replace('border-transparent', 'border-gray-200');
-        elements.bottomGradient.classList.replace('from-gray-900', 'from-gray-50');
-        elements.bottomGradient.classList.replace('via-gray-900/80', 'via-gray-50/80');
-      }
-
-      // 2. 컨트롤러 Active 상태 업데이트
-      document.querySelectorAll('.font-btn').forEach(btn => {
-        const isActive = btn.dataset.value === state.font;
-        btn.className = `font-btn px-4 py-2 rounded-full text-sm transition-all border ${isActive ? 'bg-teal-500 border-teal-500 text-white shadow-md shadow-teal-500/30' : (state.isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-200 text-gray-600')}`;
-      });
-
-      document.querySelectorAll('.text-color-btn').forEach(btn => {
-        btn.classList.toggle('border-teal-400', btn.dataset.value === state.textColor);
-        btn.classList.toggle('scale-110', btn.dataset.value === state.textColor);
-        btn.classList.toggle('border-transparent', btn.dataset.value !== state.textColor);
-      });
-
-      document.querySelectorAll('.bg-color-btn').forEach(btn => {
-        btn.classList.toggle('border-teal-400', btn.dataset.value === state.bgColor);
-        btn.classList.toggle('scale-110', btn.dataset.value === state.bgColor);
-        btn.classList.toggle('border-gray-500/30', btn.dataset.value !== state.bgColor);
-      });
-
-      document.querySelectorAll('.effect-btn').forEach(btn => {
-        const isActive = btn.dataset.value === state.effect;
-        btn.className = `effect-btn flex-1 flex flex-col items-center justify-center py-3 gap-1 rounded-xl text-xs font-medium transition-all ${isActive ? (state.isDarkMode ? 'bg-gray-700 text-teal-400 shadow-md opacity-100' : 'bg-white text-teal-600 shadow-md opacity-100') : 'opacity-60 hover:opacity-100'}`;
-      });
-
-      // 네온 토글 UI
-      if (state.isNeon) {
-        elements.neonToggleBg.classList.replace('bg-gray-700', 'bg-teal-500') || elements.neonToggleBg.classList.replace('bg-gray-300', 'bg-teal-500');
-        elements.neonToggleKnob.classList.replace('translate-x-0', 'translate-x-6');
-      } else {
-        elements.neonToggleBg.classList.replace('bg-teal-500', state.isDarkMode ? 'bg-gray-700' : 'bg-gray-300');
-        elements.neonToggleKnob.classList.replace('translate-x-6', 'translate-x-0');
-      }
-
-      // 속도 조절 노출 여부
-      elements.speedContainer.style.display = state.effect === 'none' ? 'none' : 'block';
-      
-      // Input 값 동기화
-      elements.textInput.value = state.text;
-      elements.customTextColor.value = state.textColor.length === 7 ? state.textColor : '#ffffff';
-      elements.customBgColor.value = state.bgColor.length === 7 ? state.bgColor : '#000000';
-      elements.speedSlider.value = state.speed;
-
-      // 3. 전광판 렌더링 (미리보기 & 전체화면)
-      updateSignboardDisplay(elements.preview, false);
-      updateSignboardDisplay(elements.fullscreen, true);
-      
-      lucide.createIcons(); // 아이콘 리프레시
-    }
-
-    function updateSignboardDisplay(displayElements, isFullscreen) {
-      const speedInSeconds = 20 - (state.speed * 1.8);
-      const neonShadow = state.isNeon 
-        ? `0 0 5px #fff, 0 0 10px #fff, 0 0 20px ${state.textColor}, 0 0 40px ${state.textColor}, 0 0 80px ${state.textColor}`
-        : 'none';
-
-      // Background
-      displayElements.board.style.backgroundColor = state.bgColor;
-      displayElements.dotPattern.style.backgroundImage = `radial-gradient(${state.textColor} 1px, transparent 1px)`;
-      
-      // Text Styles
-      const textEl = displayElements.text;
-      textEl.innerText = state.text || '메시지 입력';
-      textEl.style.fontFamily = state.font;
-      textEl.style.color = state.textColor;
-      textEl.style.textShadow = neonShadow;
-      textEl.style.setProperty('--speed', `${speedInSeconds}s`);
-      
-      // Reset classes
-      textEl.className = 'signboard-text absolute';
-      textEl.style.whiteSpace = 'nowrap';
-      textEl.style.wordBreak = 'keep-all';
-
-      if (state.effect === 'scroll-left') textEl.classList.add('effect-scroll-left');
-      else if (state.effect === 'scroll-right') textEl.classList.add('effect-scroll-right');
-      else if (state.effect === 'blink') {
-        textEl.classList.add('effect-blink');
-        textEl.classList.replace('absolute', 'relative');
-      } else {
-        textEl.classList.replace('absolute', 'relative');
-        textEl.style.whiteSpace = 'normal';
-        textEl.style.wordBreak = 'break-word';
-        textEl.style.textAlign = 'center';
-      }
-    }
-
-    // --- 이벤트 핸들러 ---
+    // 2. 실시간으로 데이터 불러오기 (Read)
+    // createdAt 기준으로 내림차순(최신순) 정렬
+    const q = query(todosCollection, orderBy("createdAt", "desc"));
     
-    function updateState(key, value) {
-      state[key] = value;
-      updateUI();
-    }
+    onSnapshot(q, (snapshot) => {
+        taskList.innerHTML = ''; // 기존 목록 초기화
+        snapshot.forEach((documentSnapshot) => {
+            const task = documentSnapshot.data();
+            const id = documentSnapshot.id;
 
-    function toggleDarkMode() {
-      state.isDarkMode = !state.isDarkMode;
-      updateUI();
-    }
+            // li 요소 생성
+            const li = document.createElement('li');
+            if (task.completed) li.classList.add('completed');
 
-    async function enterFullscreen() {
-      elements.fullscreenOverlay.classList.remove('hidden');
-      try {
-        const docElm = document.documentElement;
-        if (docElm.requestFullscreen) await docElm.requestFullscreen();
-        if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
-          await window.screen.orientation.lock('landscape');
-        }
-      } catch (e) {
-        console.log('Fullscreen/Orientation lock not completely supported.');
-      }
-    }
+            // 체크박스 생성
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = task.completed;
+            
+            // 3. 상태 변경하기 (Update)
+            checkbox.addEventListener('change', async () => {
+                const taskRef = doc(db, "todos", id);
+                await updateDoc(taskRef, {
+                    completed: checkbox.checked
+                });
+            });
 
-    async function exitFullscreen() {
-      elements.fullscreenOverlay.classList.add('hidden');
-      try {
-        if (document.fullscreenElement) await document.exitFullscreen();
-        if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
-          window.screen.orientation.unlock();
-        }
-      } catch (e) {
-        console.log(e);
-      }
-    }
+            // 텍스트 영역
+            const span = document.createElement('span');
+            span.textContent = task.text;
+            span.className = 'task-text';
+            // 텍스트 클릭해도 체크박스 토글되게 연결
+            span.addEventListener('click', () => {
+                checkbox.click();
+            });
 
-    // --- 초기화 ---
-    function init() {
-      renderDynamicControls();
-      updateUI();
+            // 4. 삭제 버튼 만들기 (Delete)
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '삭제';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.addEventListener('click', async () => {
+                if(confirm('정말 삭제하시겠습니까?')) {
+                    const taskRef = doc(db, "todos", id);
+                    await deleteDoc(taskRef);
+                }
+            });
 
-      // 이벤트 리스너 바인딩
-      elements.darkModeToggle.addEventListener('click', toggleDarkMode);
-      elements.textInput.addEventListener('input', (e) => updateState('text', e.target.value));
-      elements.customTextColor.addEventListener('input', (e) => updateState('textColor', e.target.value));
-      elements.customBgColor.addEventListener('input', (e) => updateState('bgColor', e.target.value));
-      elements.neonToggle.addEventListener('change', (e) => updateState('isNeon', e.target.checked));
-      elements.speedSlider.addEventListener('input', (e) => updateState('speed', Number(e.target.value)));
-      
-      elements.btnFullscreen.addEventListener('click', enterFullscreen);
-      elements.fullscreenOverlay.addEventListener('click', exitFullscreen);
-    }
+            // 요소 조합
+            li.appendChild(checkbox);
+            li.appendChild(span);
+            li.appendChild(deleteBtn);
+            taskList.appendChild(li);
+        });
+    });
+</script>
 
-    // 문서 로드 완료 시 초기화 실행
-    document.addEventListener('DOMContentLoaded', init);
-
-  </script>
 </body>
 </html>
